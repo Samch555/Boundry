@@ -1,62 +1,114 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Cricket Boundary TEST</title>
+    <title>Cricket Boundary Overlay</title>
     <style>
-        body { margin: 0; background: transparent; overflow: hidden; }
-        .boundary-gif {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 300px; opacity: 0; z-index: 1000; pointer-events: none;
+        body {
+            margin: 0;
+            background: transparent;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
         }
+        
+        /* Boundary GIF Containers */
+        .boundary-gif {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 400px;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* Animation Effects */
         @keyframes fadeIn {
-            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
             100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
         }
+        
         @keyframes fadeOut {
-            0% { opacity: 1; } 100% { opacity: 0; }
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
+        /* Test controls (remove in production) */
+        #test-controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1001;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        #test-controls button {
+            margin: 5px;
+            padding: 5px 10px;
         }
     </style>
 </head>
 <body>
-    <!-- GIFs -->
+    <!-- Boundary GIFs -->
     <div id="four-gif" class="boundary-gif">
-        <img src="https://giphy.com/gifs/mumbaiindians-ro-rohitsharma-rohit-lz5ZtYCE84hlGrOFH2" width="300">
+        <img src="https://media.giphy.com/media/lz5ZtYCE84hlGrOFH2/giphy.gif" width="400" alt="Four">
     </div>
+    
     <div id="six-gif" class="boundary-gif">
-        <img src="https://giphy.com/gifs/mumbaiindians-ro-rohitsharma-rohit-iReASvDfSxQPXzvWpa" width="300">
+        <img src="https://media.giphy.com/media/iReASvDfSxQPXzvWpa/giphy.gif" width="400" alt="Six">
     </div>
-
-    <!-- TEST CONTROLS -->
-    <div style="position: fixed; top: 10px; left: 10px; z-index: 1001; background: rgba(0,0,0,0.7); color: white; padding: 10px;">
+    
+    <!-- Test controls -->
+    <div id="test-controls">
         <h3>TEST CONTROLS</h3>
-        <button onclick="showBoundary('four')">TEST FOUR</button>
-        <button onclick="showBoundary('six')">TEST SIX</button>
-        <button onclick="startAutoTest()">AUTO TEST</button>
+        <button onclick="showBoundary('four')">Test FOUR</button>
+        <button onclick="showBoundary('six')">Test SIX</button>
+        <button onclick="startAutoTest()">Auto Cycle</button>
     </div>
 
     <script>
-        // Animation function
+        // Configuration
+        const GIF_DISPLAY_TIME = 3000; // 3 seconds
+        
+        // Show boundary animation
         function showBoundary(type) {
             const element = document.getElementById(`${type}-gif`);
+            
+            // Reset animation
             element.style.animation = 'none';
             void element.offsetHeight;
+            
+            // Play animation
             element.style.animation = 'fadeIn 0.5s forwards';
-            setTimeout(() => element.style.animation = 'fadeOut 0.5s forwards', 3000);
-            console.log(`Showing ${type.toUpperCase()}`);
+            
+            // Hide after display time
+            setTimeout(() => {
+                element.style.animation = 'fadeOut 0.5s forwards';
+            }, GIF_DISPLAY_TIME);
+            
+            console.log(`${type.toUpperCase()} animation triggered`);
         }
-
+        
         // Auto-test function
         function startAutoTest() {
             let counter = 0;
+            const types = ['four', 'six'];
             const testInterval = setInterval(() => {
-                showBoundary(counter % 2 === 0 ? 'four' : 'six');
+                showBoundary(types[counter % 2]);
                 counter++;
-                if (counter >= 6) clearInterval(testInterval);
-            }, 4000);
+                if (counter >= 4) clearInterval(testInterval); // Run 2 cycles
+            }, GIF_DISPLAY_TIME + 1000);
         }
-
-        // Initial auto-test (comment if unwanted)
-        setTimeout(() => showBoundary('four'), 1500);
+        
+        // Initial test (comment out for production)
+        setTimeout(() => showBoundary('four'), 1000);
         setTimeout(() => showBoundary('six'), 5000);
     </script>
 </body>
