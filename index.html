@@ -1,101 +1,68 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Cricket Boundary Overlay</title>
+    <title>Four Animation</title>
     <style>
         body {
             margin: 0;
             background: transparent;
             overflow: hidden;
-            font-family: 'Arial', sans-serif;
         }
         
-        /* Animated Boundary Icons */
-        .boundary {
+        #four-animation {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             font-size: 120px;
             font-weight: bold;
-            text-shadow: 0 0 15px rgba(255, 215, 0, 0.7);
+            color: #00FF00; /* Green color */
+            text-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
             opacity: 0;
             pointer-events: none;
         }
         
-        #four {
-            color: #00FF00; /* Green */
-            animation: none;
-        }
-        
-        #six {
-            color: #FFD700; /* Gold */
-            animation: none;
-        }
-        
-        /* Animations */
-        @keyframes bounceIn {
+        @keyframes fourBounce {
             0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
-            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            40% { transform: translate(-50%, -50%) scale(0.9); }
+            60% { transform: translate(-50%, -50%) scale(1.1); }
+            80% { transform: translate(-50%, -50%) scale(0.95); }
             100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
         }
         
-        @keyframes fadeOut {
+        @keyframes fourFadeOut {
             from { opacity: 1; }
             to { opacity: 0; }
         }
     </style>
 </head>
 <body>
-    <!-- Boundary Overlays (Hidden by Default) -->
-    <div id="four" class="boundary">4</div>
-    <div id="six" class="boundary">6</div>
+    <div id="four-animation">4</div>
 
     <script>
-        // CricClubs API URL (Replace with your match ID)
-        const API_URL = "https://cricclubs.com/live/CricClubsLive.do?matchId=1100&clubId=3933";
-        
-        let lastRuns = 0;
-        let lastWickets = 0;
-        
-        // Fetch CricClubs API every 5 seconds
-        function fetchScore() {
-            fetch(API_URL)
-                .then(response => response.text()) // CricClubs returns HTML, not JSON
-                .then(html => {
-                    // Parse HTML to extract runs (example logic - adjust as needed)
-                    const runsMatch = html.match(/Runs:\s*(\d+)/i);
-                    const currentRuns = runsMatch ? parseInt(runsMatch[1]) : 0;
-                    
-                    // Check for boundary (4 or 6)
-                    const runsDiff = currentRuns - lastRuns;
-                    if (runsDiff === 4) showBoundary("four");
-                    else if (runsDiff === 6) showBoundary("six");
-                    
-                    lastRuns = currentRuns;
-                })
-                .catch(error => console.error("Error fetching score:", error));
-        }
-        
-        // Show animated boundary
-        function showBoundary(type) {
-            const element = document.getElementById(type);
+        // Function to show the four animation
+        function showFour() {
+            const four = document.getElementById('four-animation');
             
             // Reset animation
-            element.style.animation = 'none';
-            void element.offsetHeight; // Trigger reflow
+            four.style.animation = 'none';
+            void four.offsetHeight; // Trigger reflow
             
             // Play animation
-            element.style.animation = 'bounceIn 0.8s forwards';
+            four.style.animation = 'fourBounce 1.2s forwards';
             
             // Hide after 3 seconds
             setTimeout(() => {
-                element.style.animation = 'fadeOut 0.5s forwards';
+                four.style.animation = 'fourFadeOut 0.5s forwards';
             }, 3000);
         }
         
-        // Poll API every 5 seconds
-        setInterval(fetchScore, 5000);
+        // For testing: Uncomment to manually trigger
+        // showFour();
+        
+        // For API integration: Call showFour() when a four is detected
+        // setInterval(checkForFours, 5000); // Example API polling
     </script>
 </body>
 </html>
