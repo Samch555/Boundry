@@ -3,66 +3,33 @@
 <head>
     <title>Four Animation</title>
     <style>
-        body {
-            margin: 0;
-            background: transparent;
-            overflow: hidden;
-        }
-        
+        body { margin: 0; background: transparent; overflow: hidden; }
         #four-animation {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 120px;
-            font-weight: bold;
-            color: #00FF00; /* Green color */
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 120px; font-weight: bold; color: #00FF00;
             text-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
-            opacity: 0;
-            pointer-events: none;
+            opacity: 0; z-index: 1000; pointer-events: none;
+            animation: none;
         }
-        
         @keyframes fourBounce {
             0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
-            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-            40% { transform: translate(-50%, -50%) scale(0.9); }
-            60% { transform: translate(-50%, -50%) scale(1.1); }
-            80% { transform: translate(-50%, -50%) scale(0.95); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
             100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        }
-        
-        @keyframes fourFadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
         }
     </style>
 </head>
 <body>
     <div id="four-animation">4</div>
-
     <script>
-        // Function to show the four animation
         function showFour() {
             const four = document.getElementById('four-animation');
-            
-            // Reset animation
             four.style.animation = 'none';
-            void four.offsetHeight; // Trigger reflow
-            
-            // Play animation
+            void four.offsetHeight;
             four.style.animation = 'fourBounce 1.2s forwards';
-            
-            // Hide after 3 seconds
-            setTimeout(() => {
-                four.style.animation = 'fourFadeOut 0.5s forwards';
-            }, 3000);
+            setTimeout(() => four.style.opacity = '0', 3000);
         }
-        
-        // For testing: Uncomment to manually trigger
-        // showFour();
-        
-        // For API integration: Call showFour() when a four is detected
-        // setInterval(checkForFours, 5000); // Example API polling
+        // Test automatically
+        window.onload = showFour;
     </script>
 </body>
 </html>
