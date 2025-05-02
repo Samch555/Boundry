@@ -34,23 +34,9 @@
             100% { opacity: 0; }
         }
         
-        /* Hidden elements */
-        #applause-audio, #audio-enabler {
+        /* Hidden audio element */
+        #applause-audio {
             display: none;
-        }
-        
-        /* Audio enable button (shown initially) */
-        #audio-enabler {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            z-index: 1001;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 8px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
         }
     </style>
 </head>
@@ -62,17 +48,11 @@
     <div id="six-gif" class="event-gif">
         <img src="https://media.giphy.com/media/iReASvDfSxQPXzvWpa/giphy.gif" width="400" alt="">
     </div>
-    <div id="wicket-gif" class="event-gif">
-        <img src="https://media.giphy.com/media/Ip015AvySprQDZpALZ/giphy.gif" width="400" alt="">
-    </div>
 
-    <!-- Audio Element with YOUR GitHub URL -->
+    <!-- Audio Element -->
     <audio id="applause-audio" preload="auto">
         <source src="https://raw.githubusercontent.com/Samch555/Boundry/main/claps.mp3" type="audio/mpeg">
     </audio>
-    
-    <!-- Audio Enable Button (for browser restrictions) -->
-    <button id="audio-enabler" onclick="enableAudio()">Enable Audio</button>
 
     <script>
         // Configuration
@@ -83,87 +63,50 @@
         const GIF_DISPLAY_TIME = 3000; // 3 seconds
         
         let lastRuns = 0;
-        let lastWickets = 0;
-        let audioEnabled = false;
         const applauseAudio = document.getElementById('applause-audio');
-        
-        // Enable audio (required for some browsers)
-        function enableAudio() {
-            applauseAudio.play()
-                .then(() => {
-                    audioEnabled = true;
-                    document.getElementById('audio-enabler').style.display = 'none';
-                    applauseAudio.pause();
-                    applauseAudio.currentTime = 0;
-                })
-                .catch(e => console.log("Enable audio first:", e));
-        }
-        
-        // Show event animation with sound
-        function showEvent(type) {
+
+        // Show event and play audio for boundaries
+        function showBoundary(type) {
             const element = document.getElementById(`${type}-gif`);
+            
+            // Reset animation
             element.style.animation = 'none';
             void element.offsetHeight;
+            
+            // Play animation
             element.style.animation = 'fadeIn 0.5s forwards';
             
-            // Play applause for boundaries only if audio is enabled
-            if ((type === 'four' || type === 'six') && audioEnabled) {
-                applauseAudio.currentTime = 0;
-                applauseAudio.play().catch(e => console.log("Audio play failed:", e));
-            }
+            // Play audio (only for 4s and 6s)
+            applauseAudio.currentTime = 0;
+            applauseAudio.play().catch(e => console.log("Audio play failed:", e));
             
             setTimeout(() => element.style.animation = 'fadeOut 0.5s forwards', GIF_DISPLAY_TIME);
         }
-        
-        // Parse CricClubs HTML
-        function parseScorecard(html) {
-            // ADAPT THESE PATTERNS TO YOUR API RESPONSE
+
+        // Parse scorecard and detect boundaries
+        function checkScorecard(html) {
+            // ADAPT THIS TO MATCH YOUR CricClubs HTML STRUCTURE
             const runsMatch = html.match(/Runs<\/span>\s*:\s*<span[^>]*>(\d+)/i);
-            const wicketsMatch = html.match(/Wickets<\/span>\s*:\s*<span[^>]*>(\d+)/i);
-            return {
-                runs: runsMatch ? parseInt(runsMatch[1]) : lastRuns,
-                wickets: wicketsMatch ? parseInt(wicketsMatch[1]) : lastWickets
-            };
-        }
-        
-        // Check for events
-        function checkForEvents(currentRuns, currentWickets) {
+            const currentRuns = runsMatch ? parseInt(runsMatch[1]) : lastRuns;
             const runsDiff = currentRuns - lastRuns;
-            const wicketsDiff = currentWickets - lastWickets;
             
-            if (runsDiff === 4) showEvent('four');
-            else if (runsDiff === 6) showEvent('six');
-            if (wicketsDiff > 0) showEvent('wicket');
+            if (runsDiff === 4) showBoundary('four');
+            else if (runsDiff === 6) showBoundary('six');
             
             lastRuns = currentRuns;
-            lastWickets = currentWickets;
         }
-        
-        // Fetch data
+
+        // Fetch data from CricClubs
         function fetchScorecard() {
             fetch(`${API_URL}?matchId=${MATCH_ID}&clubId=${CLUB_ID}`)
                 .then(response => response.text())
-                .then(html => checkForEvents(...Object.values(parseScorecard(html))))
+                .then(html => checkScorecard(html))
                 .catch(() => {}); // Silent fail
         }
-        
+
         // Start polling
         setInterval(fetchScorecard, POLL_INTERVAL);
         fetchScorecard(); // Initial fetch
-        
-        // Hide enable button if audio works without interaction
-        window.onload = function() {
-            applauseAudio.play()
-                .then(() => {
-                    audioEnabled = true;
-                    document.getElementById('audio-enabler').style.display = 'none';
-                    applauseAudio.pause();
-                    applauseAudio.currentTime = 0;
-                })
-                .catch(() => {
-                    document.getElementById('audio-enabler').style.display = 'block';
-                });
-        };
     </script>
 </body>
 </html>
