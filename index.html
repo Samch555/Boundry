@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Cricket Boundary Overlay</title>
+    <title>Cricket Event Detection</title>
     <style>
         body {
             margin: 0;
@@ -10,8 +10,7 @@
             font-family: Arial, sans-serif;
         }
         
-        /* Boundary GIF Containers */
-        .boundary-gif {
+        .event-gif {
             position: fixed;
             top: 50%;
             left: 50%;
@@ -26,7 +25,6 @@
             align-items: center;
         }
         
-        /* Animation Effects */
         @keyframes fadeIn {
             0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
             100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
@@ -37,48 +35,48 @@
             100% { opacity: 0; }
         }
         
-        /* Test controls (remove in production) */
-        #test-controls {
+        #status {
             position: fixed;
             top: 10px;
             left: 10px;
-            z-index: 1001;
-            background: rgba(0,0,0,0.7);
             color: white;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        
-        #test-controls button {
-            margin: 5px;
+            background: rgba(0,0,0,0.7);
             padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
-    <!-- Boundary GIFs -->
-    <div id="four-gif" class="boundary-gif">
+    <!-- Event GIFs -->
+    <div id="four-gif" class="event-gif">
         <img src="https://media.giphy.com/media/lz5ZtYCE84hlGrOFH2/giphy.gif" width="400" alt="Four">
     </div>
     
-    <div id="six-gif" class="boundary-gif">
+    <div id="six-gif" class="event-gif">
         <img src="https://media.giphy.com/media/iReASvDfSxQPXzvWpa/giphy.gif" width="400" alt="Six">
     </div>
     
-    <!-- Test controls -->
-    <div id="test-controls">
-        <h3>TEST CONTROLS</h3>
-        <button onclick="showBoundary('four')">Test FOUR</button>
-        <button onclick="showBoundary('six')">Test SIX</button>
-        <button onclick="startAutoTest()">Auto Cycle</button>
+    <div id="wicket-gif" class="event-gif">
+        <img src="https://media.giphy.com/media/Ip015AvySprQDZpALZ/giphy.gif" width="400" alt="Wicket">
     </div>
+    
+    <!-- API Status -->
+    <div id="status">Loading CricClubs data...</div>
 
     <script>
         // Configuration
+        const API_URL = "https://cricclubs.com/live/CricClubsLive.do";
+        const MATCH_ID = "1100"; // Replace with your match ID
+        const CLUB_ID = "3933"; // Replace with your club ID
+        const POLL_INTERVAL = 5000; // 5 seconds
         const GIF_DISPLAY_TIME = 3000; // 3 seconds
         
-        // Show boundary animation
-        function showBoundary(type) {
+        let lastRuns = 0;
+        let lastWickets = 0;
+        
+        // Show event animation
+        function showEvent(type) {
             const element = document.getElementById(`${type}-gif`);
             
             // Reset animation
@@ -93,23 +91,69 @@
                 element.style.animation = 'fadeOut 0.5s forwards';
             }, GIF_DISPLAY_TIME);
             
-            console.log(`${type.toUpperCase()} animation triggered`);
+            console.log(`Event detected: ${type.toUpperCase()}`);
+            document.getElementById('status').textContent = `Event: ${type.toUpperCase()} detected`;
         }
         
-        // Auto-test function
-        function startAutoTest() {
-            let counter = 0;
-            const types = ['four', 'six'];
-            const testInterval = setInterval(() => {
-                showBoundary(types[counter % 2]);
-                counter++;
-                if (counter >= 4) clearInterval(testInterval); // Run 2 cycles
-            }, GIF_DISPLAY_TIME + 1000);
+        // Parse CricClubs HTML to extract match data
+        function parseScorecard(html) {
+            // ADAPT THESE REGEX PATTERNS TO MATCH YOUR API RESPONSE
+            const runsMatch = html.match(/<span[^>]*>Runs<\/span>\s*:\s*<span[^>]*>(\d+)/i);
+            const wicketsMatch = html.match(/<span[^>]*>Wickets<\/span>\s*:\s*<span[^>]*>(\d+)/i);
+            
+            return {
+                runs: runsMatch ? parseInt(runsMatch[1]) : 0,
+                wickets: wicketsMatch ? parseInt(wicketsMatch[1]) : 0
+            };
         }
         
-        // Initial test (comment out for production)
-        setTimeout(() => showBoundary('four'), 1000);
-        setTimeout(() => showBoundary('six'), 5000);
+        // Check for match events
+        function checkForEvents(currentRuns, currentWickets) {
+            const runsDiff = currentRuns - lastRuns;
+            const wicketsDiff = currentWickets - lastWickets;
+            
+            // Boundary detection
+            if (runsDiff === 4) {
+                showEvent('four');
+            } else if (runsDiff === 6) {
+                showEvent('six');
+            }
+            
+            // Wicket detection
+            if (wicketsDiff > 0) {
+                showEvent('wicket');
+            }
+            
+            lastRuns = currentRuns;
+            lastWickets = currentWickets;
+        }
+        
+        // Fetch data from CricClubs API
+        function fetchScorecard() {
+            const fullUrl = `${API_URL}?matchId=${MATCH_ID}&clubId=${CLUB_ID}`;
+            
+            // Use CORS proxy if needed (uncomment if getting CORS errors)
+            // const proxyUrl = "https://cors-anywhere.herokuapp.com/";
+            // fetch(proxyUrl + fullUrl)
+            
+            fetch(fullUrl)
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('status').textContent = "Live data loaded";
+                    const { runs, wickets } = parseScorecard(html);
+                    checkForEvents(runs, wickets);
+                })
+                .catch(error => {
+                    console.error("API Error:", error);
+                    document.getElementById('status').textContent = "Error loading data";
+                });
+        }
+        
+        // Start polling
+        setInterval(fetchScorecard, POLL_INTERVAL);
+        
+        // Initial fetch
+        fetchScorecard();
     </script>
 </body>
 </html>
