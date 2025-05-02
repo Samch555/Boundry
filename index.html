@@ -1,13 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Cricket Overlay Tester</title>
+    <title>Cricket Boundary Detection</title>
     <style>
         body {
             margin: 0;
             background: transparent;
             overflow: hidden;
-            font-family: Arial, sans-serif;
         }
         
         .event-gif {
@@ -35,84 +34,59 @@
             100% { opacity: 0; }
         }
         
-        #test-controls {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            z-index: 1001;
+        /* Hidden elements */
+        #applause-audio, #audio-enabler {
+            display: none;
         }
         
-        #test-controls button {
-            margin: 5px;
-            padding: 8px 15px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        
+        /* Audio enable button (shown initially) */
         #audio-enabler {
             position: fixed;
             top: 10px;
             left: 10px;
-            z-index: 1002;
-            background: #4CAF50;
+            z-index: 1001;
+            background: rgba(0,0,0,0.7);
             color: white;
+            padding: 8px 15px;
             border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
+            border-radius: 4px;
             cursor: pointer;
-        }
-        
-        #status {
-            color: white;
-            margin-top: 10px;
-            font-size: 14px;
         }
     </style>
 </head>
 <body>
     <!-- Event GIFs -->
     <div id="four-gif" class="event-gif">
-        <img src="https://media.giphy.com/media/lz5ZtYCE84hlGrOFH2/giphy.gif" width="400" alt="Four">
+        <img src="https://media.giphy.com/media/lz5ZtYCE84hlGrOFH2/giphy.gif" width="400" alt="">
     </div>
     <div id="six-gif" class="event-gif">
-        <img src="https://media.giphy.com/media/iReASvDfSxQPXzvWpa/giphy.gif" width="400" alt="Six">
+        <img src="https://media.giphy.com/media/iReASvDfSxQPXzvWpa/giphy.gif" width="400" alt="">
     </div>
     <div id="wicket-gif" class="event-gif">
-        <img src="https://media.giphy.com/media/Ip015AvySprQDZpALZ/giphy.gif" width="400" alt="Wicket">
+        <img src="https://media.giphy.com/media/Ip015AvySprQDZpALZ/giphy.gif" width="400" alt="">
     </div>
 
-    <!-- Audio Element -->
+    <!-- Audio Element with YOUR GitHub URL -->
     <audio id="applause-audio" preload="auto">
         <source src="https://raw.githubusercontent.com/Samch555/Boundry/main/claps.mp3" type="audio/mpeg">
     </audio>
-
-    <!-- Audio Enable Button -->
-    <button id="audio-enabler" onclick="enableAudio()">🔊 Enable Audio</button>
-
-    <!-- Test Controls -->
-    <div id="test-controls">
-        <h3>MANUAL TEST CONTROLS</h3>
-        <div>
-            <button onclick="triggerEvent('four')">Test FOUR (4 Key)</button>
-            <button onclick="triggerEvent('six')">Test SIX (6 Key)</button>
-            <button onclick="triggerEvent('wicket')">Test WICKET (W Key)</button>
-        </div>
-        <div id="status">Press buttons or keyboard keys (4, 6, W)</div>
-    </div>
+    
+    <!-- Audio Enable Button (for browser restrictions) -->
+    <button id="audio-enabler" onclick="enableAudio()">Enable Audio</button>
 
     <script>
         // Configuration
+        const API_URL = "https://cricclubs.com/live/CricClubsLive.do";
+        const MATCH_ID = "1100"; // Replace with your match ID
+        const CLUB_ID = "3933"; // Replace with your club ID
+        const POLL_INTERVAL = 5000; // 5 seconds
         const GIF_DISPLAY_TIME = 3000; // 3 seconds
+        
+        let lastRuns = 0;
+        let lastWickets = 0;
         let audioEnabled = false;
         const applauseAudio = document.getElementById('applause-audio');
-        const statusElement = document.getElementById('status');
-
+        
         // Enable audio (required for some browsers)
         function enableAudio() {
             applauseAudio.play()
@@ -121,57 +95,63 @@
                     document.getElementById('audio-enabler').style.display = 'none';
                     applauseAudio.pause();
                     applauseAudio.currentTime = 0;
-                    updateStatus("Audio enabled! Test with buttons/keyboard");
                 })
-                .catch(e => {
-                    updateStatus("Error: Click 'Enable Audio' first");
-                    console.error("Audio error:", e);
-                });
+                .catch(e => console.log("Enable audio first:", e));
         }
-
-        // Trigger events manually
-        function triggerEvent(type) {
+        
+        // Show event animation with sound
+        function showEvent(type) {
             const element = document.getElementById(`${type}-gif`);
-            
-            // Reset animation
             element.style.animation = 'none';
             void element.offsetHeight;
-            
-            // Play animation
             element.style.animation = 'fadeIn 0.5s forwards';
             
-            // Play sound for boundaries only if audio is enabled
+            // Play applause for boundaries only if audio is enabled
             if ((type === 'four' || type === 'six') && audioEnabled) {
                 applauseAudio.currentTime = 0;
                 applauseAudio.play().catch(e => console.log("Audio play failed:", e));
             }
             
-            // Hide after display time
-            setTimeout(() => {
-                element.style.animation = 'fadeOut 0.5s forwards';
-            }, GIF_DISPLAY_TIME);
+            setTimeout(() => element.style.animation = 'fadeOut 0.5s forwards', GIF_DISPLAY_TIME);
+        }
+        
+        // Parse CricClubs HTML
+        function parseScorecard(html) {
+            // ADAPT THESE PATTERNS TO YOUR API RESPONSE
+            const runsMatch = html.match(/Runs<\/span>\s*:\s*<span[^>]*>(\d+)/i);
+            const wicketsMatch = html.match(/Wickets<\/span>\s*:\s*<span[^>]*>(\d+)/i);
+            return {
+                runs: runsMatch ? parseInt(runsMatch[1]) : lastRuns,
+                wickets: wicketsMatch ? parseInt(wicketsMatch[1]) : lastWickets
+            };
+        }
+        
+        // Check for events
+        function checkForEvents(currentRuns, currentWickets) {
+            const runsDiff = currentRuns - lastRuns;
+            const wicketsDiff = currentWickets - lastWickets;
             
-            updateStatus(`Triggered: ${type.toUpperCase()}`);
+            if (runsDiff === 4) showEvent('four');
+            else if (runsDiff === 6) showEvent('six');
+            if (wicketsDiff > 0) showEvent('wicket');
+            
+            lastRuns = currentRuns;
+            lastWickets = currentWickets;
         }
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (e.key === '4') triggerEvent('four');
-            if (e.key === '6') triggerEvent('six');
-            if (e.key.toLowerCase() === 'w') triggerEvent('wicket');
-        });
-
-        // Status updates
-        function updateStatus(message) {
-            statusElement.textContent = message;
-            setTimeout(() => {
-                if (statusElement.textContent === message) {
-                    statusElement.textContent = "Press buttons or keyboard keys (4, 6, W)";
-                }
-            }, 2000);
+        
+        // Fetch data
+        function fetchScorecard() {
+            fetch(`${API_URL}?matchId=${MATCH_ID}&clubId=${CLUB_ID}`)
+                .then(response => response.text())
+                .then(html => checkForEvents(...Object.values(parseScorecard(html))))
+                .catch(() => {}); // Silent fail
         }
-
-        // Try auto-enabling audio on load
+        
+        // Start polling
+        setInterval(fetchScorecard, POLL_INTERVAL);
+        fetchScorecard(); // Initial fetch
+        
+        // Hide enable button if audio works without interaction
         window.onload = function() {
             applauseAudio.play()
                 .then(() => {
