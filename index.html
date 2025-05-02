@@ -1,35 +1,63 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Four Animation</title>
+    <title>Cricket Boundary TEST</title>
     <style>
         body { margin: 0; background: transparent; overflow: hidden; }
-        #four-animation {
+        .boundary-gif {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 120px; font-weight: bold; color: #00FF00;
-            text-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
-            opacity: 0; z-index: 1000; pointer-events: none;
-            animation: none;
+            width: 300px; opacity: 0; z-index: 1000; pointer-events: none;
         }
-        @keyframes fourBounce {
-            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
-            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
             100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        @keyframes fadeOut {
+            0% { opacity: 1; } 100% { opacity: 0; }
         }
     </style>
 </head>
 <body>
-    <div id="four-animation">4</div>
+    <!-- GIFs -->
+    <div id="four-gif" class="boundary-gif">
+        <img src="https://media.giphy.com/media/6VdVOQEir6bla2uyOg/giphy.gif" width="300">
+    </div>
+    <div id="six-gif" class="boundary-gif">
+        <img src="https://media.giphy.com/media/z7sajerX9dTPnfSqFj/giphy.gif" width="300">
+    </div>
+
+    <!-- TEST CONTROLS -->
+    <div style="position: fixed; top: 10px; left: 10px; z-index: 1001; background: rgba(0,0,0,0.7); color: white; padding: 10px;">
+        <h3>TEST CONTROLS</h3>
+        <button onclick="showBoundary('four')">TEST FOUR</button>
+        <button onclick="showBoundary('six')">TEST SIX</button>
+        <button onclick="startAutoTest()">AUTO TEST</button>
+    </div>
+
     <script>
-        function showFour() {
-            const four = document.getElementById('four-animation');
-            four.style.animation = 'none';
-            void four.offsetHeight;
-            four.style.animation = 'fourBounce 1.2s forwards';
-            setTimeout(() => four.style.opacity = '0', 3000);
+        // Animation function
+        function showBoundary(type) {
+            const element = document.getElementById(`${type}-gif`);
+            element.style.animation = 'none';
+            void element.offsetHeight;
+            element.style.animation = 'fadeIn 0.5s forwards';
+            setTimeout(() => element.style.animation = 'fadeOut 0.5s forwards', 3000);
+            console.log(`Showing ${type.toUpperCase()}`);
         }
-        // Test automatically
-        window.onload = showFour;
+
+        // Auto-test function
+        function startAutoTest() {
+            let counter = 0;
+            const testInterval = setInterval(() => {
+                showBoundary(counter % 2 === 0 ? 'four' : 'six');
+                counter++;
+                if (counter >= 6) clearInterval(testInterval);
+            }, 4000);
+        }
+
+        // Initial auto-test (comment if unwanted)
+        setTimeout(() => showBoundary('four'), 1500);
+        setTimeout(() => showBoundary('six'), 5000);
     </script>
 </body>
 </html>
