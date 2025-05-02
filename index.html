@@ -1,166 +1,169 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Animated Boundary Overlay</title>
+    <title>Cricket Boundary Detection</title>
     <style>
         body {
             margin: 0;
             background: transparent;
             overflow: hidden;
-            font-family: Arial, sans-serif;
         }
         
-        .boundary {
+        .event-gif {
             position: fixed;
             top: 50%;
-            left: -200px;
-            transform: translateY(-50%);
-            font-size: 120px;
-            font-weight: bold;
-            color: #00FF00;
-            text-shadow: 0 0 20px #00FF00, 0 0 40px #FFFFFF;
-            opacity: 0;
-            z-index: 1000;
-            pointer-events: none;
-        }
-        
-        /* Left-to-right rolling animation with celebration effects */
-        @keyframes rollCelebration {
-            0% {
-                opacity: 0;
-                left: -200px;
-                transform: translateY(-50%) rotate(-30deg) scale(0.5);
-                text-shadow: 0 0 10px #00FF00;
-            }
-            20% {
-                opacity: 1;
-                transform: translateY(-50%) rotate(0deg) scale(1.2);
-                text-shadow: 0 0 30px #00FF00, 0 0 60px #FFFFFF;
-            }
-            80% {
-                opacity: 1;
-                transform: translateY(-50%) rotate(10deg) scale(1.1);
-                text-shadow: 0 0 30px #00FF00, 0 0 60px #FFFFFF;
-            }
-            100% {
-                left: 100%;
-                opacity: 0;
-                transform: translateY(-50%) rotate(30deg) scale(0.5);
-                text-shadow: 0 0 10px #00FF00;
-            }
-        }
-        
-        /* Celebration particles */
-        .particle {
-            position: fixed;
-            background: #FFD700;
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 999;
-            opacity: 0;
-        }
-        
-        /* Test controls */
-        #test-controls {
-            position: fixed;
-            bottom: 20px;
             left: 50%;
-            transform: translateX(-50%);
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 400px;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
+        /* Hidden elements */
+        #applause-audio, #audio-enabler {
+            display: none;
+        }
+        
+        /* Audio enable button (shown initially) */
+        #audio-enabler {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1001;
             background: rgba(0,0,0,0.7);
             color: white;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            z-index: 1001;
-        }
-        
-        #test-controls button {
-            margin: 5px;
             padding: 8px 15px;
-            font-size: 16px;
+            border: none;
+            border-radius: 4px;
             cursor: pointer;
         }
     </style>
 </head>
 <body>
-    <!-- Animated Boundary -->
-    <div id="boundary-4" class="boundary">4</div>
-    
-    <!-- Test Controls -->
-    <div id="test-controls">
-        <button onclick="triggerBoundary()">Test Boundary (4 Key)</button>
+    <!-- Event GIFs -->
+    <div id="four-gif" class="event-gif">
+        <img src="https://media.giphy.com/media/lz5ZtYCE84hlGrOFH2/giphy.gif" width="400" alt="">
     </div>
+    <div id="six-gif" class="event-gif">
+        <img src="https://media.giphy.com/media/iReASvDfSxQPXzvWpa/giphy.gif" width="400" alt="">
+    </div>
+    <div id="wicket-gif" class="event-gif">
+        <img src="https://media.giphy.com/media/Ip015AvySprQDZpALZ/giphy.gif" width="400" alt="">
+    </div>
+
+    <!-- Audio Element with YOUR GitHub URL -->
+    <audio id="applause-audio" preload="auto">
+        <source src="https://raw.githubusercontent.com/Samch555/Boundry/main/claps.mp3" type="audio/mpeg">
+    </audio>
+    
+    <!-- Audio Enable Button (for browser restrictions) -->
+    <button id="audio-enabler" onclick="enableAudio()">Enable Audio</button>
 
     <script>
         // Configuration
-        const ANIMATION_DURATION = 3000; // 3 seconds
+        const API_URL = "https://cricclubs.com/live/CricClubsLive.do";
+        const MATCH_ID = "1100"; // Replace with your match ID
+        const CLUB_ID = "3933"; // Replace with your club ID
+        const POLL_INTERVAL = 5000; // 5 seconds
+        const GIF_DISPLAY_TIME = 3000; // 3 seconds
         
-        // Trigger boundary animation
-        function triggerBoundary() {
-            const boundary = document.getElementById('boundary-4');
-            
-            // Reset animation
-            boundary.style.animation = 'none';
-            void boundary.offsetHeight;
-            
-            // Start animation
-            boundary.style.animation = `rollCelebration ${ANIMATION_DURATION}ms forwards`;
-            
-            // Create celebration particles
-            createParticles();
+        let lastRuns = 0;
+        let lastWickets = 0;
+        let audioEnabled = false;
+        const applauseAudio = document.getElementById('applause-audio');
+        
+        // Enable audio (required for some browsers)
+        function enableAudio() {
+            applauseAudio.play()
+                .then(() => {
+                    audioEnabled = true;
+                    document.getElementById('audio-enabler').style.display = 'none';
+                    applauseAudio.pause();
+                    applauseAudio.currentTime = 0;
+                })
+                .catch(e => console.log("Enable audio first:", e));
         }
         
-        // Create celebration particles
-        function createParticles() {
-            for (let i = 0; i < 50; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                
-                // Random properties
-                const size = Math.random() * 10 + 5;
-                const posX = Math.random() * window.innerWidth;
-                const posY = Math.random() * window.innerHeight;
-                const delay = Math.random() * 1000;
-                const duration = Math.random() * 1000 + 500;
-                
-                // Apply styles
-                particle.style.width = `${size}px`;
-                particle.style.height = `${size}px`;
-                particle.style.left = `${posX}px`;
-                particle.style.top = `${posY}px`;
-                
-                // Animate particle
-                particle.style.animation = `
-                    fadeParticle ${duration}ms ${delay}ms forwards
-                `;
-                
-                document.body.appendChild(particle);
-                
-                // Remove particle after animation
-                setTimeout(() => {
-                    particle.remove();
-                }, delay + duration);
+        // Show event animation with sound
+        function showEvent(type) {
+            const element = document.getElementById(`${type}-gif`);
+            element.style.animation = 'none';
+            void element.offsetHeight;
+            element.style.animation = 'fadeIn 0.5s forwards';
+            
+            // Play applause for boundaries only if audio is enabled
+            if ((type === 'four' || type === 'six') && audioEnabled) {
+                applauseAudio.currentTime = 0;
+                applauseAudio.play().catch(e => console.log("Audio play failed:", e));
             }
             
-            // Add CSS for particles if not exists
-            if (!document.getElementById('particle-styles')) {
-                const style = document.createElement('style');
-                style.id = 'particle-styles';
-                style.textContent = `
-                    @keyframes fadeParticle {
-                        0% { opacity: 0; transform: scale(0); }
-                        50% { opacity: 0.8; transform: scale(1); }
-                        100% { opacity: 0; transform: scale(0); }
-                    }
-                `;
-                document.head.appendChild(style);
-            }
+            setTimeout(() => element.style.animation = 'fadeOut 0.5s forwards', GIF_DISPLAY_TIME);
         }
         
-        // Keyboard shortcut
-        document.addEventListener('keydown', (e) => {
-            if (e.key === '4') triggerBoundary();
-        });
+        // Parse CricClubs HTML
+        function parseScorecard(html) {
+            // ADAPT THESE PATTERNS TO YOUR API RESPONSE
+            const runsMatch = html.match(/Runs<\/span>\s*:\s*<span[^>]*>(\d+)/i);
+            const wicketsMatch = html.match(/Wickets<\/span>\s*:\s*<span[^>]*>(\d+)/i);
+            return {
+                runs: runsMatch ? parseInt(runsMatch[1]) : lastRuns,
+                wickets: wicketsMatch ? parseInt(wicketsMatch[1]) : lastWickets
+            };
+        }
+        
+        // Check for events
+        function checkForEvents(currentRuns, currentWickets) {
+            const runsDiff = currentRuns - lastRuns;
+            const wicketsDiff = currentWickets - lastWickets;
+            
+            if (runsDiff === 4) showEvent('four');
+            else if (runsDiff === 6) showEvent('six');
+            if (wicketsDiff > 0) showEvent('wicket');
+            
+            lastRuns = currentRuns;
+            lastWickets = currentWickets;
+        }
+        
+        // Fetch data
+        function fetchScorecard() {
+            fetch(`${API_URL}?matchId=${MATCH_ID}&clubId=${CLUB_ID}`)
+                .then(response => response.text())
+                .then(html => checkForEvents(...Object.values(parseScorecard(html))))
+                .catch(() => {}); // Silent fail
+        }
+        
+        // Start polling
+        setInterval(fetchScorecard, POLL_INTERVAL);
+        fetchScorecard(); // Initial fetch
+        
+        // Hide enable button if audio works without interaction
+        window.onload = function() {
+            applauseAudio.play()
+                .then(() => {
+                    audioEnabled = true;
+                    document.getElementById('audio-enabler').style.display = 'none';
+                    applauseAudio.pause();
+                    applauseAudio.currentTime = 0;
+                })
+                .catch(() => {
+                    document.getElementById('audio-enabler').style.display = 'block';
+                });
+        };
     </script>
 </body>
 </html>
