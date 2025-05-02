@@ -7,7 +7,6 @@
             margin: 0;
             background: transparent;
             overflow: hidden;
-            font-family: Arial, sans-serif;
         }
         
         .event-gif {
@@ -34,35 +33,19 @@
             0% { opacity: 1; }
             100% { opacity: 0; }
         }
-        
-        #status {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            color: white;
-            background: rgba(0,0,0,0.7);
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 14px;
-        }
     </style>
 </head>
 <body>
-    <!-- Event GIFs -->
+    <!-- Event GIFs (completely hidden when inactive) -->
     <div id="four-gif" class="event-gif">
-        <img src="https://media.giphy.com/media/lz5ZtYCE84hlGrOFH2/giphy.gif" width="400" alt="Four">
+        <img src="https://media.giphy.com/media/lz5ZtYCE84hlGrOFH2/giphy.gif" width="400" alt="">
     </div>
-    
     <div id="six-gif" class="event-gif">
-        <img src="https://media.giphy.com/media/iReASvDfSxQPXzvWpa/giphy.gif" width="400" alt="Six">
+        <img src="https://media.giphy.com/media/iReASvDfSxQPXzvWpa/giphy.gif" width="400" alt="">
     </div>
-    
     <div id="wicket-gif" class="event-gif">
-        <img src="https://media.giphy.com/media/Ip015AvySprQDZpALZ/giphy.gif" width="400" alt="Wicket">
+        <img src="https://media.giphy.com/media/Ip015AvySprQDZpALZ/giphy.gif" width="400" alt="">
     </div>
-    
-    <!-- API Status -->
-    <div id="status">Loading CricClubs data...</div>
 
     <script>
         // Configuration
@@ -75,85 +58,50 @@
         let lastRuns = 0;
         let lastWickets = 0;
         
-        // Show event animation
+        // Show event animation (no console logs)
         function showEvent(type) {
             const element = document.getElementById(`${type}-gif`);
-            
-            // Reset animation
             element.style.animation = 'none';
-            void element.offsetHeight;
-            
-            // Play animation
+            void element.offsetHeight; // Trigger reflow
             element.style.animation = 'fadeIn 0.5s forwards';
-            
-            // Hide after display time
-            setTimeout(() => {
-                element.style.animation = 'fadeOut 0.5s forwards';
-            }, GIF_DISPLAY_TIME);
-            
-            console.log(`Event detected: ${type.toUpperCase()}`);
-            document.getElementById('status').textContent = `Event: ${type.toUpperCase()} detected`;
+            setTimeout(() => element.style.animation = 'fadeOut 0.5s forwards', GIF_DISPLAY_TIME);
         }
         
-        // Parse CricClubs HTML to extract match data
+        // Parse CricClubs HTML (silent)
         function parseScorecard(html) {
-            // ADAPT THESE REGEX PATTERNS TO MATCH YOUR API RESPONSE
-            const runsMatch = html.match(/<span[^>]*>Runs<\/span>\s*:\s*<span[^>]*>(\d+)/i);
-            const wicketsMatch = html.match(/<span[^>]*>Wickets<\/span>\s*:\s*<span[^>]*>(\d+)/i);
-            
+            // ADAPT THESE PATTERNS TO YOUR API RESPONSE
+            const runsMatch = html.match(/Runs<\/span>\s*:\s*<span[^>]*>(\d+)/i);
+            const wicketsMatch = html.match(/Wickets<\/span>\s*:\s*<span[^>]*>(\d+)/i);
             return {
-                runs: runsMatch ? parseInt(runsMatch[1]) : 0,
-                wickets: wicketsMatch ? parseInt(wicketsMatch[1]) : 0
+                runs: runsMatch ? parseInt(runsMatch[1]) : lastRuns,
+                wickets: wicketsMatch ? parseInt(wicketsMatch[1]) : lastWickets
             };
         }
         
-        // Check for match events
+        // Check for events (silent)
         function checkForEvents(currentRuns, currentWickets) {
             const runsDiff = currentRuns - lastRuns;
             const wicketsDiff = currentWickets - lastWickets;
             
-            // Boundary detection
-            if (runsDiff === 4) {
-                showEvent('four');
-            } else if (runsDiff === 6) {
-                showEvent('six');
-            }
-            
-            // Wicket detection
-            if (wicketsDiff > 0) {
-                showEvent('wicket');
-            }
+            if (runsDiff === 4) showEvent('four');
+            else if (runsDiff === 6) showEvent('six');
+            if (wicketsDiff > 0) showEvent('wicket');
             
             lastRuns = currentRuns;
             lastWickets = currentWickets;
         }
         
-        // Fetch data from CricClubs API
+        // Fetch data silently
         function fetchScorecard() {
-            const fullUrl = `${API_URL}?matchId=${MATCH_ID}&clubId=${CLUB_ID}`;
-            
-            // Use CORS proxy if needed (uncomment if getting CORS errors)
-            // const proxyUrl = "https://cors-anywhere.herokuapp.com/";
-            // fetch(proxyUrl + fullUrl)
-            
-            fetch(fullUrl)
+            fetch(`${API_URL}?matchId=${MATCH_ID}&clubId=${CLUB_ID}`)
                 .then(response => response.text())
-                .then(html => {
-                    document.getElementById('status').textContent = "Live data loaded";
-                    const { runs, wickets } = parseScorecard(html);
-                    checkForEvents(runs, wickets);
-                })
-                .catch(error => {
-                    console.error("API Error:", error);
-                    document.getElementById('status').textContent = "Error loading data";
-                });
+                .then(html => checkForEvents(...Object.values(parseScorecard(html))))
+                .catch(() => {}); // Silent fail
         }
         
         // Start polling
         setInterval(fetchScorecard, POLL_INTERVAL);
-        
-        // Initial fetch
-        fetchScorecard();
+        fetchScorecard(); // Initial fetch
     </script>
 </body>
 </html>
