@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Cricket Overlay Tester</title>
+    <title>Animated Boundary Overlay</title>
     <style>
         body {
             margin: 0;
@@ -10,63 +10,57 @@
             font-family: Arial, sans-serif;
         }
         
-        .boundary-gif {
+        .boundary {
             position: fixed;
             top: 50%;
-            width: 400px;
-            height: 400px;
+            left: -200px;
+            transform: translateY(-50%);
+            font-size: 120px;
+            font-weight: bold;
+            color: #00FF00;
+            text-shadow: 0 0 20px #00FF00, 0 0 40px #FFFFFF;
             opacity: 0;
-            pointer-events: none;
             z-index: 1000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            pointer-events: none;
         }
         
-        .wicket-gif {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 400px;
-            height: 400px;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 1000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        /* Left-to-right animation for boundaries */
-        @keyframes rollIn {
-            0% { 
+        /* Left-to-right rolling animation with celebration effects */
+        @keyframes rollCelebration {
+            0% {
                 opacity: 0;
-                left: -400px;
-                transform: translateY(-50%) rotate(-30deg);
+                left: -200px;
+                transform: translateY(-50%) rotate(-30deg) scale(0.5);
+                text-shadow: 0 0 10px #00FF00;
             }
-            70% {
+            20% {
                 opacity: 1;
-                transform: translateY(-50%) rotate(10deg);
+                transform: translateY(-50%) rotate(0deg) scale(1.2);
+                text-shadow: 0 0 30px #00FF00, 0 0 60px #FFFFFF;
+            }
+            80% {
+                opacity: 1;
+                transform: translateY(-50%) rotate(10deg) scale(1.1);
+                text-shadow: 0 0 30px #00FF00, 0 0 60px #FFFFFF;
             }
             100% {
                 left: 100%;
                 opacity: 0;
-                transform: translateY(-50%) rotate(30deg);
+                transform: translateY(-50%) rotate(30deg) scale(0.5);
+                text-shadow: 0 0 10px #00FF00;
             }
         }
         
-        /* Center animation for wickets */
-        @keyframes fadeIn {
-            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        /* Celebration particles */
+        .particle {
+            position: fixed;
+            background: #FFD700;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0;
         }
         
-        @keyframes fadeOut {
-            0% { opacity: 1; }
-            100% { opacity: 0; }
-        }
-        
+        /* Test controls */
         #test-controls {
             position: fixed;
             bottom: 20px;
@@ -86,146 +80,87 @@
             font-size: 16px;
             cursor: pointer;
         }
-        
-        #audio-enabler {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            z-index: 1002;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        
-        #status {
-            color: white;
-            margin-top: 10px;
-            font-size: 14px;
-        }
     </style>
 </head>
 <body>
-    <!-- Boundary GIFs (will roll left-to-right) -->
-    <div id="four-gif" class="boundary-gif">
-        <img src="https://media.giphy.com/media/lz5ZtYCE84hlGrOFH2/giphy.gif" width="400" alt="Four">
-    </div>
-    <div id="six-gif" class="boundary-gif">
-        <img src="https://media.giphy.com/media/iReASvDfSxQPXzvWpa/giphy.gif" width="400" alt="Six">
-    </div>
+    <!-- Animated Boundary -->
+    <div id="boundary-4" class="boundary">4</div>
     
-    <!-- Wicket GIF (centered) -->
-    <div id="wicket-gif" class="wicket-gif">
-        <img src="https://media.giphy.com/media/Ip015AvySprQDZpALZ/giphy.gif" width="400" alt="Wicket">
-    </div>
-
-    <!-- Audio Element -->
-    <audio id="applause-audio" preload="auto">
-        <source src="https://raw.githubusercontent.com/Samch555/Boundry/main/claps.mp3" type="audio/mpeg">
-    </audio>
-
-    <!-- Audio Enable Button -->
-    <button id="audio-enabler" onclick="enableAudio()">🔊 Enable Audio</button>
-
     <!-- Test Controls -->
     <div id="test-controls">
-        <h3>MANUAL TEST CONTROLS</h3>
-        <div>
-            <button onclick="triggerEvent('four')">Test FOUR (4 Key)</button>
-            <button onclick="triggerEvent('six')">Test SIX (6 Key)</button>
-            <button onclick="triggerEvent('wicket')">Test WICKET (W Key)</button>
-        </div>
-        <div id="status">Press buttons or keyboard keys (4, 6, W)</div>
+        <button onclick="triggerBoundary()">Test Boundary (4 Key)</button>
     </div>
 
     <script>
         // Configuration
-        const BOUNDARY_DISPLAY_TIME = 4000; // 4 seconds (matches animation duration)
-        const WICKET_DISPLAY_TIME = 3000; // 3 seconds
-        let audioEnabled = false;
-        const applauseAudio = document.getElementById('applause-audio');
-        const statusElement = document.getElementById('status');
-
-        // Enable audio (required for some browsers)
-        function enableAudio() {
-            applauseAudio.play()
-                .then(() => {
-                    audioEnabled = true;
-                    document.getElementById('audio-enabler').style.display = 'none';
-                    applauseAudio.pause();
-                    applauseAudio.currentTime = 0;
-                    updateStatus("Audio enabled! Test with buttons/keyboard");
-                })
-                .catch(e => {
-                    updateStatus("Error: Click 'Enable Audio' first");
-                    console.error("Audio error:", e);
-                });
-        }
-
-        // Trigger events manually
-        function triggerEvent(type) {
-            const element = document.getElementById(`${type}-gif`);
+        const ANIMATION_DURATION = 3000; // 3 seconds
+        
+        // Trigger boundary animation
+        function triggerBoundary() {
+            const boundary = document.getElementById('boundary-4');
             
             // Reset animation
-            element.style.animation = 'none';
-            void element.offsetHeight;
+            boundary.style.animation = 'none';
+            void boundary.offsetHeight;
             
-            if (type === 'wicket') {
-                // Centered animation for wickets
-                element.style.animation = 'fadeIn 0.5s forwards';
+            // Start animation
+            boundary.style.animation = `rollCelebration ${ANIMATION_DURATION}ms forwards`;
+            
+            // Create celebration particles
+            createParticles();
+        }
+        
+        // Create celebration particles
+        function createParticles() {
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
                 
-                // Hide after display time
+                // Random properties
+                const size = Math.random() * 10 + 5;
+                const posX = Math.random() * window.innerWidth;
+                const posY = Math.random() * window.innerHeight;
+                const delay = Math.random() * 1000;
+                const duration = Math.random() * 1000 + 500;
+                
+                // Apply styles
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.left = `${posX}px`;
+                particle.style.top = `${posY}px`;
+                
+                // Animate particle
+                particle.style.animation = `
+                    fadeParticle ${duration}ms ${delay}ms forwards
+                `;
+                
+                document.body.appendChild(particle);
+                
+                // Remove particle after animation
                 setTimeout(() => {
-                    element.style.animation = 'fadeOut 0.5s forwards';
-                }, WICKET_DISPLAY_TIME);
-            } else {
-                // Rolling animation for boundaries
-                element.style.left = '-400px';
-                element.style.transform = 'translateY(-50%)';
-                element.style.animation = 'rollIn 4s forwards';
-                
-                // Play sound for boundaries only if audio is enabled
-                if (audioEnabled) {
-                    applauseAudio.currentTime = 0;
-                    applauseAudio.play().catch(e => console.log("Audio play failed:", e));
-                }
+                    particle.remove();
+                }, delay + duration);
             }
             
-            updateStatus(`Triggered: ${type.toUpperCase()}`);
+            // Add CSS for particles if not exists
+            if (!document.getElementById('particle-styles')) {
+                const style = document.createElement('style');
+                style.id = 'particle-styles';
+                style.textContent = `
+                    @keyframes fadeParticle {
+                        0% { opacity: 0; transform: scale(0); }
+                        50% { opacity: 0.8; transform: scale(1); }
+                        100% { opacity: 0; transform: scale(0); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
         }
-
-        // Keyboard shortcuts
+        
+        // Keyboard shortcut
         document.addEventListener('keydown', (e) => {
-            if (e.key === '4') triggerEvent('four');
-            if (e.key === '6') triggerEvent('six');
-            if (e.key.toLowerCase() === 'w') triggerEvent('wicket');
+            if (e.key === '4') triggerBoundary();
         });
-
-        // Status updates
-        function updateStatus(message) {
-            statusElement.textContent = message;
-            setTimeout(() => {
-                if (statusElement.textContent === message) {
-                    statusElement.textContent = "Press buttons or keyboard keys (4, 6, W)";
-                }
-            }, 2000);
-        }
-
-        // Try auto-enabling audio on load
-        window.onload = function() {
-            applauseAudio.play()
-                .then(() => {
-                    audioEnabled = true;
-                    document.getElementById('audio-enabler').style.display = 'none';
-                    applauseAudio.pause();
-                    applauseAudio.currentTime = 0;
-                })
-                .catch(() => {
-                    document.getElementById('audio-enabler').style.display = 'block';
-                });
-        };
     </script>
 </body>
 </html>
